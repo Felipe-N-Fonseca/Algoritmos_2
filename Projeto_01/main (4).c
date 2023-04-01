@@ -5,6 +5,7 @@
 #include <stdbool.h> //biblioteca usada para usar valores booleanos no acerto e erro
 #include <unistd.h> //essa biblioteca sera usada somente para a funcao sleep() que da ao usuario um carregamento do jogo
 #include<locale.h> // biblioteca para a interpretação dos caracteres brasileiros
+#include <ctype.h>
 
 int ler_tamanho(FILE *arq_palavras){ //essa funcao sera responsavel por calcular a quantidade de palavras do arquivo para definifir o tamanho do vetor
     int tamanho = 0; //contador de tamanho
@@ -22,6 +23,25 @@ int nmr_aleatorio(int limitacao_tamanho){ //essa funcao gera o numero aleatorio,
     srand(time(NULL)); //funcao para chamar o numero aleatorio
     nmr_gerado = rand()%limitacao_tamanho; //gera o numero até no maximo o tamanho do ultimo vetor
     return nmr_gerado; //retorna o numero inteiro
+}
+
+char finder(char palavra_pc[], char palavra_user[], char conca[]){
+	int i, j, conca_atual=2;
+	for(i=0; i < 5; i++){
+		for(j=0; j < 5; j++){
+			if(toupper(palavra_pc[i]) == toupper(palavra_user[i])){
+				conca[conca_atual] = '^';
+				break;
+			} else if(toupper(palavra_pc[j]) == toupper(palavra_user[i])){
+				conca[conca_atual] = '!';
+				break;
+			} else {
+				conca[conca_atual] = 'x';
+			}
+		}
+		conca_atual += 2;
+	}
+	return conca;
 }
 
 int main(){ //funcao principal do jogo
@@ -52,7 +72,7 @@ int main(){ //funcao principal do jogo
     printf("2. Serão dadas 6 chances para acertar a palavra.\n");
     printf("3. Se a palavra não estiver no dicionário, não sera debitado do número de tentativas restantes.\n");
     printf("\nEXEMPLO: \n"); //exemplo para usuario
-    printf("\t\t+-----------+\n\t\t| T U R M A |\n\t\t| ^ x x x ! |\n\t\t+-----------+\n");
+    printf("\t+-----------+\n\t| T U R M A |\n\t| ^ x x x ! |\n\t+-----------+\n");
     printf("\nLEGENDA: \n"); //explicacao dos icones
     printf("'^' -  Faz parte da palavra e está na posição correta.\n");
     printf("'x' -  Não faz parte da palavra.\n");
@@ -61,28 +81,38 @@ int main(){ //funcao principal do jogo
     scanf("%c", &confirmacao);
     system("clear"); //apos o usuario confimar essa funcao em especifico limpa a tela, pois o usuario entendeu todas regras e o jogo comecara
     printf("A palavra está sendo sorteada, aguarde...\n");
-    sleep(3); //esse e o carregamento do jogo so para o segurar o usuario durante 3 segundo, tempo razoavel
+    //sleep(3); //esse e o carregamento do jogo so para o segurar o usuario durante 3 segundo, tempo razoavel
     printf("A palavra sorteada foi escolhida com sucesso! Boa sorte!\n\n"); //o jogo comecou!
-    char tentativas[6][5]; //vetor que salva os palpites do jogador
+    char tentativas[6][100]; //vetor que salva os palpites do jogador
     int i, j; //int para criar laço
     for(i=0; i<6; i++){
-        for(j=0; j<5; j++){
-            tentativas[i][j] = '-'; //esse laço substitui os '-' da interface toda vez que o usuario coloca uma palavra nova
+    	tentativas[i][0] = '\t';
+    	tentativas[i][1] = '|';
+        for(j=2; j<13; j+=2){
+            tentativas[i][j] = ' ';
+            tentativas[i][j+1] = '-'; //esse laço substitui os '-' da interface toda vez que o usuario coloca uma palavra nova
         }
+    	tentativas[i][13] = '|';
+        
+        for(j=14;j<99;j++){
+            tentativas[i][j] = ' ';
+		}
+    	tentativas[i][99] = '\n';
     }
-    int tentativas_restantes = 6; //tentativas restantes do usuario
+    int tentativas_restantes; //tentativas restantes do usuario
     bool acertou = false; //aqui definiremos acertou como falso pois ele nÃ£o acertou nada ainda
-    while(tentativas_restantes > 0 && !acertou){ //ele pode tentar ate tentativas ser zerada
+    for(tentativas_restantes = 6; tentativas_restantes > 0;){ //ele pode tentar ate tentativas ser zerada
         printf("Tentativas restantes: %d\n", tentativas_restantes); //printa as chances restantes
-        printf("\t  +-------+\n"); // essa é a interface do wordle, definida em 6 linhas com 5 letras cada, ele salva as palavras para o jogador ver
+        
+        printf("palavra sorteada: %s\n", palavras[plvr_escolhida]);
+        
+        printf("\t+-----------+\n"); // essa é a interface do wordle, definida em 6 linhas com 5 letras cada, ele salva as palavras para o jogador ver
         for(i=0; i<6; i++){
-            printf("\t| ");
-            for(j=0; j<5; j++){
-                printf("%c ", tentativas[i][j]); //esse laco printa a palavra dentro do quadro de palavras com cada caractere
+            for(j=0; j<100; j++){
+                printf("%c", tentativas[i][j]); //esse laco printa a palavra dentro do quadro de palavras com cada caractere
             }
-            printf("|\n");
         }
-        printf("\t  +-------+\n"); //final da interface wordle
+        printf("\t+-----------+\n"); //final da interface wordle
         char palpite[6]; //essa é a variavel que salva o palpite do jogador a cada caractere
         printf("Insira o seu palpite (5 letras minúsculas, sem acentos): ");
         scanf("%s", palpite); //manda o digitado para palpite
@@ -102,38 +132,61 @@ int main(){ //funcao principal do jogo
             printf("Entrada inválida! Insira 5 letras minúsculas, sem acentos.\n"); //printa mensagem de invalidez
             continue; //continua mas não desconta das tentavas do jogador entao ele terá¡ que digiar novamente
         }
-        int corretos = 0, quase_corretos = 0; //FELIPE ARRUMAR ESSA Ã‰ UMA VARIAVEL DE CONTROLE DE ACERTOS DAQUI PARA BAIXO ELE PRECISA INDICAR QUAL LETRA TA CERTA E QUAL POSICAO Ã‰
-        for(i=0; i<5; i++){
-            if (palpite[i] == palavras[plvr_escolhida][i]){
-                corretos++;
-            } else {
-                for(j=0; j<5; j++){
-                    if (palpite[i] == palavras[plvr_escolhida][j]){
-                        quase_corretos++;
-                        break;
-                    }
-                }
-            }
-        }
+        
         int tentativa_atual = 6 - tentativas_restantes;
-        for(i=0; i<5; i++){
-            tentativas[tentativa_atual][i] = palpite[i];
+        int t = 0;
+        for(i=3; i<13; i+=2){
+            tentativas[tentativa_atual][i] = palpite[t];
+            t++;
         }
-    printf("+-------+\n");
-    printf("| ");
-    for(i=0; i<5; i++){
-        printf("%c ", palpite[i]);
-    }
-    printf("|\n");
-    printf("| ^ %d   |\n", corretos);
-    printf("| ! %d   |\n", quase_corretos);
-    printf("+-------+\n");
-    if (corretos == 5){ //se o 5 das letras forem acertadas, o usuario ganhou
-        acertou = true; //acertou e verdadeiro
-    } 
-    else{
-        tentativas_restantes--; //caso não desconta das tentativas
-    }
+        
+        char conca0[] = "Histórico de tentativas:";
+	    char conca1[] = "+-----------+";
+	    char conca2[] = "| 0 0 0 0 0 |";
+	    char conca4[] = "| 0 0 0 0 0 |";
+	    char conca3 = finder(palavras[plvr_escolhida], palpite, conca4);
+	    
+	    conca2[2] = palpite[0];
+	    conca2[4] = palpite[1];
+	    conca2[6] = palpite[2];
+	    conca2[8] = palpite[3];
+	    conca2[10] = palpite[4];
+	    
+	    
+	    int adicao = (tentativa_atual + 1) * 17;
+	    
+	    if(tentativa_atual == 0){
+	    for(j = 0; j < 24; j++){
+    		tentativas[0][j+adicao] = conca0[j];
+		}	
+		}
+    	for(j = 0; j < 14; j++){
+    		tentativas[1][j+adicao] = conca1[j];
+		}
+		for(j = 0; j < 14; j++){
+    		tentativas[2][j+adicao] = conca2[j];
+		}
+		for(j = 0; j < 14; j++){
+    		tentativas[3][j+adicao] = conca4[j];
+		}
+		for(j = 0; j < 14; j++){
+    		tentativas[4][j+adicao] = conca1[j];
+		}
+	    
+	    int c=0;
+	    for(i=0; i < 5; i++){
+	    	if(toupper(palavras[plvr_escolhida][i]) == toupper(palpite[i])){
+				c++;
+			}
+		}
+	    if(c==5){
+		acertou = true;
+		}
+		
+		if(acertou == 1){
+			break;
+		}
+	    tentativas_restantes--;
     } //fim do game onde o usuario da os palpites
     if(acertou){ // se ele acertou ou seja, se acertou == true
         printf("Parabéns, você acertou a palavra!\n");
